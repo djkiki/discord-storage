@@ -11,9 +11,19 @@ use serenity::{
     },
     prelude::*,
 };
+
 use serenity::builder::CreateMessage;
 use serenity::builder::CreateAttachment;
 use serenity::builder::CreateEmbed;
+use serenity::builder::CreateThread;
+use serenity::model::channel::GuildChannel;
+use serenity::all::MessageId;
+
+use serenity::model::channel::ThreadsData;
+
+
+
+use serenity::builder::GetMessages;
 
 use tokio::io::AsyncReadExt;
 
@@ -30,9 +40,35 @@ impl EventHandler for Handler {
     async fn message(&self, ctx: Context, msg: Message) {
 		let file_name = "./lorem";
         if msg.content == "!ping" {
+			let tred = CreateThread::new(file_name);
+			if let Err(why) = msg.channel_id.create_thread(&ctx.http, tred).await{
+				println!("Error: {:?}",why);
+			}
+			else{
+				println!("{}", msg.channel_id);
+			}
+			///////////////////////
+			let guild_id = match msg.guild_id {
+				Some(id) => id,
+				None => {
+					println!("This command must be used in a server.");
+					return;
+				}
+			};
+			let channels = match guild_id.get_active_threads(&ctx.http).await {
+				Ok(c) => c,
+				Err(e) => {
+					println!("Error getting channels: {:?}", e);
+					return;
+				}
+			};
+			let id_watku = channels.threads[0].id;
+			println!("id_watku: {}", id_watku);
+			//////////////////////////////////
 	    match wczytywanie_pliku().await{
 		Ok(hex_string) => {
-			if let Err(why) = send_file_chunks(&ctx,msg.channel_id, hex_string.clone(), file_name).await{
+			//ZASTAPIC msg.channel_id
+			if let Err(why) = send_file_chunks(&ctx, id_watku, hex_string.clone(), file_name).await{
 				println!("Error sending a message: {:?}", why);
 				}
 				for chunk in hex_string.chars().collect::<Vec<char>>().chunks(MAX_FILE_SIZE_BYTES){
@@ -49,6 +85,69 @@ impl EventHandler for Handler {
 				}
 			}
         }
+
+		if msg.content == "!watek" {
+			let tred = CreateThread::new("test");
+			if let Err(why) = msg.channel_id.create_thread(&ctx.http, tred).await{
+				println!("Error: {:?}",why);
+			}
+			else{
+				println!("{}", msg.channel_id);
+			}
+		}
+
+		if msg.content == "!sraka"{
+            let guild_id = match msg.guild_id {
+                Some(id) => id,
+                None => {
+                    println!("This command must be used in a server.");
+                    return;
+                }
+            };
+
+            let channels = match guild_id.channels(&ctx.http).await {
+                Ok(c) => c,
+                Err(e) => {
+                    println!("Error getting channels: {:?}", e);
+                    return;
+                }
+            };
+
+            for (id, channel) in &channels {
+                println!("Channel name: {}, id: {}", channel.name, id);
+            }
+			
+		}
+
+		if msg.content == "!kupa"{
+            let guild_id = match msg.guild_id {
+                Some(id) => id,
+                None => {
+                    println!("This command must be used in a server.");
+                    return;
+                }
+            };
+
+            let channels = match guild_id.get_active_threads(&ctx.http).await {
+                Ok(c) => c,
+                Err(e) => {
+                    println!("Error getting channels: {:?}", e);
+                    return;
+                }
+            };
+			//println!("{}", &channels.threads);
+
+            for channel in &channels.threads {
+                println!("Channel name: {}, id: {}", channel.name, channel.id);
+            }
+			
+		}
+
+			
+
+
+		
+
     }
 }
 
@@ -126,5 +225,7 @@ async fn send_file_part(ctx: &Context, channel_id: &ChannelId, chunk: &[u8], fil
 	Ok(())
 
 }
+
+
 
 
